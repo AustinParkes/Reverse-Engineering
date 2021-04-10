@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Start/stop binary-admin
+#
+
+EXECUTABLE=/usr/bin/binary-admin
+ARGS="-p 31338 -d"
+
+case "$1" in
+  start)
+	echo "Starting binary-admin..."
+	start-stop-daemon -S -x "$EXECUTABLE" -- $ARGS
+	;;
+  stop)
+	echo "Stopping binary-admin..."
+	start-stop-daemon -K -x "$EXECUTABLE" -o
+	;;
+  reload|force-reload|restart)
+	"$0" stop
+	sleep 1 # Prevent race condition
+	"$0" start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+	exit 1
+esac

@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Start/stop simple-admin
+#
+
+EXECUTABLE=/usr/bin/simple-admin
+ARGS="-p 31337 -d"
+
+case "$1" in
+  start)
+	echo "Starting simple-admin..."
+	start-stop-daemon -S -x "$EXECUTABLE" -- $ARGS
+	;;
+  stop)
+	echo "Stopping simple-admin..."
+	start-stop-daemon -K -x "$EXECUTABLE" -o
+	;;
+  reload|force-reload|restart)
+	"$0" stop
+	sleep 1 # Prevent race condition
+	"$0" start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+	exit 1
+esac

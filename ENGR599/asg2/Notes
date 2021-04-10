@@ -1,0 +1,104 @@
+Detecting TCP ports
+	- nmap
+	   -p define port ranges to search (search all with '-p-')
+	   -A enables OS detection, version detection,script scanning, traceroute
+	   -T timing template ('T4' to go really fast)
+	   
+	- This System
+	   IP: 169.254.15.2
+	   
+Interacting with Sockets
+	- netcat
+	   - Give IP and TCP port
+	      - Allows you to interact over that service
+	- telnet (same thing as above but better)
+
+Getting Password
+	- Can modify filesystem
+	   - Password in etc/shadow as a hash 
+	      - Can replace this hash with a hash from a PW we do know.
+	         - 'openssl passwd -5' to get a hash and replace the other hash we dont know about
+	      - May need to know what hashing algorithm is being used to produce a similar one
+	         - MD5, SHA256, etc
+	      
+	- Could modify boot arguments
+	   - Manually bring up the init functions we want
+	   
+Python binary scripting (see lecture05 2:03:53)
+
+Dynamic Analysis (stopped at 1:44 detailing strace (systemcalls) may be 1 spot where its useful)
+	QEMU System -mode debugger
+		- debug server already started in QEMU launch script on port 1234 (default)
+	1) login into target machine
+	2) gdb-multiarch
+		3) target remote localhost:1234
+		   or
+		4) set break point where we want (b *0xnnnnnnn)	
+		
+	Process-level with gdb-server (better for us so we can use CLI)
+		Need to get gdb-server in our device file system
+		(Easier way then below is to just copy it over and squash the filesystem again)
+		1) login to system
+		2) nc -l -p 1337 > /tmp/gdbserver (listen on port with nc and write to a file called gdbserver)
+		3) (outside of system) pipe gdbserver to the system to the port its listening on
+		   gdbserver binary is located in asg2 directory
+		   nc 169.254.15.2 1337 < gdbserver	
+		4) (in system) Make gdbserver executable
+		   chmod 755 /tmp/gdbserver 
+		    
+	 Using gdbserver (get more benefits of the application. gdbserver knows about it better)
+	 (in system)
+	 1) ps ax (lists system services and their process id)
+	 2) gdbserver --attach 0.0.0.0:5432 108 (108 is process id of binary-admin service to connect to) 112 in admin-auth and auth-server is 108
+	 (out of system)
+	 3) gdb-multiarch
+	 	4) target remote 169.254.15.2:5432  
+	 	5) set break where we want (should be waiting at accept())
+	    	b *0xnnnnn
+	 	6) set follow-fork-mode child (needs to know to follow execution of child process)
+	 	7) c
+	 8) nc 169.254.15.2 31338 (to establish connection, breakpoint should be hit)
+	 
+	 Inspect Stack
+	 x/4xw $sp
+	 
+	 
+	    
+nc 169.254.15.2 31338		
+Workflow
+	- Find the binary-admin interface program
+		- init script shows it on port 31388 so can throw commands there
+			- (usr/bin/binary-admin) is the binary to look at
+			
+Addresses
+	do_get_challenge()
+
+000312b1
+	
+signal SIGINT FIXES STUCK ISSUE
+A message goes by this
+Message size, ID, command, x\08 or x\04, and message size
+Then the message
+The first message suze
+Is the overall which is 6 + message size
+
+
+
+
+
+
+
+
+
+
+
+
+		
+		
+		
+		
+		
+		
+		
+		
+		

