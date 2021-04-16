@@ -18,28 +18,28 @@ def parse_address(comm):
 	addr3 = addr3[2:]						# Gets rid of 0x
 	
 	addr = addr1 + addr2 + addr3			# Concatenate string addresses
-	hex_addr = int(addr, 16)                 # convert hex string to int
+	hex_addr = int(addr, 16)                # convert hex string to int
 	return hex_addr
 	
-# Parse 32 bit data and store it as hex string
+# Parse data bytes and store in memory
 def parse_data(addr,start_pid):
 	dummy = csv_file.readline()				# Skip dummy data
 	line = csv_file.readline()	
 	# Get bytes data from an address
 	while(1):    
 	                   
-		# Cycle through the bytes until pid changes
-            		
+		# Cycle through the bytes until pid changes            		
 		data = line.split(',')[miso_col]         # Get data as a hex string
 		data = data[2:4]						 # Get rid of 0x and newline
-
 		memory[addr] = int(data,16)              # Store byte into memory model
 		
 		line = csv_file.readline()
+		
+		# Leave if nothing more to read
 		if (not(line)):
-			a=-1
-			b=2
-			return a, b	
+			exit=-1
+			return exit, line	
+			
 		# Check if pid has changed
 		pid = line.split(',')[pid_col]	
 		
@@ -47,12 +47,7 @@ def parse_data(addr,start_pid):
     	# Keep storing data until pid changes
 		if (pid == start_pid):    
 			addr = addr + 1
-			if (addr >= 2097152):            # Don't go beyond max index
-				print(5)
-				return -1                   # Exit
 		else:
-			print("f" + pid)
-			print("f" + start_pid)
 			return pid, line
 
 	
@@ -77,98 +72,27 @@ while (index < (capacity) ):
 
 csv_file = open("spi_analyzer_output.csv",'r')
 
-"""
-Go through each packet ID, get it's address and data,
-and store it in a list. We skip anything that isn't a fast read.
-"""
-
 # Strip some variables from the first iteration
-line = csv_file.readline() 			# First line is header information
+line = csv_file.readline() 			# header information
 line = csv_file.readline() 			# Strip a line from the loop
-pid = line.split(',')[pid_col]		# Get packet id	
+pid = line.split(',')[pid_col]		# packet id	
 
-"""
-we need to return the correct line
-"""
-prev_pid=1 		# Don't want this to equal pid at start of loop
-pid=str(0)      
-while (pid != -1):  			        # -1 is exit condition
-	#print(pid)
-	#print(prev_pid)
-	if (pid != prev_pid):					# Don't read a command until pid changes
-	
-		command = line.split(',')[mosi_col] # Get command
-		
+prev_pid=1 	 # Value 	
+pid=str(0)   # pid is string thru program    
+while (pid != -1):  			            	# -1 is exit condition
+	if (pid != prev_pid):						# Don't read a command until pid changes	
+		command = line.split(',')[mosi_col] 	# Get command
 		if (command == fast_read):
-			print("pid: " + str(pid))
-			print("comm: " + command)
-			print("line: " + line)
-			addr = parse_address(command)			# parse address from 'read' command
-			print("addr: " + str(hex(addr)))
+			addr = parse_address(command)		# parse address from 'read' command
 			prev_pid = pid
-			pid, line = parse_data(addr, pid)        	# parse data from address(es) and store in memory model
-			print(line)
-		else:                              # Read lines until pid changes
-			#prev_pid = pid		
+			pid, line = parse_data(addr, pid)   # parse data from address(es) and store in memory model
+		else:                              		# Read lines until pid changes
+			# OTHER COMMANDS IDENTIFIED HERE with 'print(command)'	
 			line = csv_file.readline()
 			pid = line.split(',')[pid_col]		# Get packet id	
 
 
 f = open("opdump.bin", 'wb')
-f.write(memory[:])
+f.write(memory)
 f.close
 
-
-#print(addresses)
-#print((data_arr[0:20]))	
-
-
-"""
-Sort data in order by address, and fill missing addresses with 0xFF
-"""
-"""
-sorted_addresses = []
-sorted_data = []
-addr_hit=0
-index = 0
-expected_address = 0x0
-while (expected_address <= max(addresses)):
-	# Order the data
-	if (addresses[index] != expected_address):
-		# Search for the index that our expected address is at, to get the corresponding data
-		temp_index = index
-		while (temp_index < len(addresses)):
-			if (addresses[temp_index] == expected_address):
-				addr_hit=1									# We found an address that matches expected!
-				sorted_addresses.append(expected_address)	# sort address
-				sorted_data.append(data_arr[temp_index])	# sort data
-				break
-			temp_index = temp_index + 1	
-		# No address found, so fill with 0xFF		
-		if (addr_hit != 1):
-			sorted_addresses.append(expected_address)
-			sorted_data.append(0xFF)
-
-
-	# Keep data the same
-	else:
-		sorted_addresses.append(expected_address)
-		sorted_data.append(data_arr[index])
-		
-	# Reset and increment indices		
-	#print(expected_address)
-	#if (expected_address == 0x28):
-		#print(sorted_addresses)
-		#print(sorted_data)
-	addr_hit=0		
-	index=index+1
-	expected_address=expected_address+4	
-		
-	
-	
-	
-
-print(sorted_addresses[0:10])
-print(sorted_data[0:10])
-print("Done")
-"""	
