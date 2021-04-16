@@ -2,86 +2,131 @@
 Reconstruct Flash contents in order, from SPI CSV readout
 """
 # Parse 24 bit address and store it as hex integer in list
-def parse_address():
-	line = csv_file.readline()				# First address line
+def parse_address(comm):
+	# First address byte
+	line = csv_file.readline()			
 	addr1 = line.split(',')[mosi_col]
-	line = csv_file.readline()				# Second address line
+	addr1 = addr1[2:]						# Gets rid of 0x
+	# Second address byte
+	line = csv_file.readline()			
 	addr2 = line.split(',')[mosi_col]		
 	addr2 = addr2[2:]						# Gets rid of 0x
-	line = csv_file.readline()				# Third address line
+	
+	# Third address byte
+	line = csv_file.readline()				
 	addr3 = line.split(',')[mosi_col]
 	addr3 = addr3[2:]						# Gets rid of 0x
+	
 	addr = addr1 + addr2 + addr3			# Concatenate string addresses
-	hex_int = int(addr, 16)                 # convert hex string to int
-	addresses.append(hex_int)				# Add to list of addresses
-	return hex_int
-	#print(addr)
+	hex_addr = int(addr, 16)                 # convert hex string to int
+	return hex_addr
 	
 # Parse 32 bit data and store it as hex string
-def parse_data(b,pid):
+def parse_data(addr,start_pid):
 	dummy = csv_file.readline()				# Skip dummy data
-	line = csv_file.readline()				# First data line
-	data1 = line.split(',')[miso_col]
-	data1 = data1[2:4]						# Get rid of 0x and newline
-	line = csv_file.readline()				# Second data line
-	data2 = line.split(',')[miso_col]
-	data2 = data2[2:4]						# Get rid of 0x and newline
-	line = csv_file.readline()				# Third data line
-	data3 = line.split(',')[miso_col]
-	data3 = data3[2:4]						# Get rid of 0x and newline
-	line = csv_file.readline()				# Fourth data line
-	data4 = line.split(',')[miso_col]
-	data4 = data4[2:4]						# Get rid of 0x and newline
-	data = data1 + data2 + data3 + data4
-	if (data == "F0000A3C"):
-		print(data)
-		print(b)
-		print(pid)
-	data_arr.append(data)                   # Add to list of data
-	#print(data)
+	line = csv_file.readline()	
+	# Get bytes data from an address
+	while(1):    
+	                   
+		# Cycle through the bytes until pid changes
+            		
+		data = line.split(',')[miso_col]         # Get data as a hex string
+		data = data[2:4]						 # Get rid of 0x and newline
+
+		memory[addr] = int(data,16)              # Store byte into memory model
+		
+		line = csv_file.readline()
+		if (not(line)):
+			a=-1
+			b=2
+			return a, b	
+		# Check if pid has changed
+		pid = line.split(',')[pid_col]	
+		
+		
+    	# Keep storing data until pid changes
+		if (pid == start_pid):    
+			addr = addr + 1
+			if (addr >= 2097152):            # Don't go beyond max index
+				print(5)
+				return -1                   # Exit
+		else:
+			print("f" + pid)
+			print("f" + start_pid)
+			return pid, line
+
 	
 # Possible columns we'll read
 pid_col = 1
 mosi_col = 2
 miso_col = 3
 
-# Possible commands to encounter
+# Only command we care about
 fast_read = "0x0B"
-deepPD = "0xB9"
-relPD = "0xAB"
 
-# Store addresses and data from read memory command
-addresses=[]
-data_arr=[]
 
+# Construct a memory model before updating it
+capacity = 2097152
+memory = bytearray(capacity) # memory capacity of SPI is 2097152
+index=0
+
+# Populate memory with 0xFF
+while (index < (capacity) ):
+	memory[index]=0xff
+	index = index + 1
 
 csv_file = open("spi_analyzer_output.csv",'r')
 
+"""
+Go through each packet ID, get it's address and data,
+and store it in a list. We skip anything that isn't a fast read.
+"""
 
-line = csv_file.readline() # First line is header information
-line = csv_file.readline() # Strip a line from the loop
+# Strip some variables from the first iteration
+line = csv_file.readline() 			# First line is header information
+line = csv_file.readline() 			# Strip a line from the loop
+pid = line.split(',')[pid_col]		# Get packet id	
 
-prev_pid=1 # Don't want this to equal pid at start of loop
-pid=0
-while (line):
-	pid = line.split(',')[pid_col]		# Get packet id	
-	# Don't read command until pid changes
-	if (pid != prev_pid):
-		command = line.split(',')[mosi_col] # Get command
-		#print(command)
-		# Check if fast_read command was read
-		if (command == fast_read):
-			b = parse_address()		# parse address and add to list
-			parse_data(b,pid)        # parse data and add to list
-		# else ignore other commands until pid changes
+"""
+we need to return the correct line
+"""
+prev_pid=1 		# Don't want this to equal pid at start of loop
+pid=str(0)      
+while (pid != -1):  			        # -1 is exit condition
+	#print(pid)
+	#print(prev_pid)
+	if (pid != prev_pid):					# Don't read a command until pid changes
 	
-	prev_pid = pid		
-	line = csv_file.readline()
+		command = line.split(',')[mosi_col] # Get command
+		
+		if (command == fast_read):
+			print("pid: " + str(pid))
+			print("comm: " + command)
+			print("line: " + line)
+			addr = parse_address(command)			# parse address from 'read' command
+			print("addr: " + str(hex(addr)))
+			prev_pid = pid
+			pid, line = parse_data(addr, pid)        	# parse data from address(es) and store in memory model
+			print(line)
+		else:                              # Read lines until pid changes
+			#prev_pid = pid		
+			line = csv_file.readline()
+			pid = line.split(',')[pid_col]		# Get packet id	
 
-#print(addresses[0:20])
+
+f = open("opdump.bin", 'wb')
+f.write(memory[:])
+f.close
+
+
+#print(addresses)
 #print((data_arr[0:20]))	
 
-# Sort data in order, while filling missing addresses with 0xFF
+
+"""
+Sort data in order by address, and fill missing addresses with 0xFF
+"""
+"""
 sorted_addresses = []
 sorted_data = []
 addr_hit=0
@@ -92,10 +137,7 @@ while (expected_address <= max(addresses)):
 	if (addresses[index] != expected_address):
 		# Search for the index that our expected address is at, to get the corresponding data
 		temp_index = index
-		print(temp_index)
 		while (temp_index < len(addresses)):
-			if (addresses[temp_index] == 5124 and expected_address==28):
-				print(data_arr[temp_index])	
 			if (addresses[temp_index] == expected_address):
 				addr_hit=1									# We found an address that matches expected!
 				sorted_addresses.append(expected_address)	# sort address
@@ -129,4 +171,4 @@ while (expected_address <= max(addresses)):
 print(sorted_addresses[0:10])
 print(sorted_data[0:10])
 print("Done")
-	
+"""	

@@ -1,10 +1,16 @@
-mlist = []
+def func1():
+	line = csv_file.readline()
+	print(line)
 
-index=0
 
-while (index<10):
-	mlist[index]=5
-	index=index+1
+def func2():
+	line = csv_file.readline()
+	print(line)
 
-print(mlist)
+csv_file = open("spi_analyzer_output.csv",'r')
 
+line = csv_file.readline()
+print(line)
+
+func1()
+func2()
