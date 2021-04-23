@@ -1,0 +1,9 @@
+#Ghidra Lock File
+#Thu Apr 22 13:50:23 EDT 2021
+OS\ Name=Linux
+OS\ Version=5.8.0-50-generic
+Username=austin
+Hostname=austin
+<META>\ Supports\ File\ Channel\ Locking=Channel Lock
+OS\ Architecture=amd64
+Timestamp=4/22/21, 1\:50 PM
