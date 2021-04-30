@@ -73,5 +73,4 @@ recv = b""
 while (len(recv) < n) :
 	recv += sock.recv(n - len(recv))
 
-
 print(recv)
